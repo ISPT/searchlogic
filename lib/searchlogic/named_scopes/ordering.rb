@@ -40,8 +40,10 @@ module Searchlogic
         end
         
         def create_ordering_conditions(column)
-          named_scope("ascend_by_#{column}".to_sym, {:order => "#{table_name}.#{column} ASC"})
-          named_scope("descend_by_#{column}".to_sym, {:order => "#{table_name}.#{column} DESC"})
+          quoted_table = ::ActiveRecord::Base.connection.quote_table_name(table_name)
+          quoted_column = ::ActiveRecord::Base.connection.quote_column_name(column)
+          named_scope("ascend_by_#{column}".to_sym, {:order => "#{quoted_table}.#{quoted_column} ASC"})
+          named_scope("descend_by_#{column}".to_sym, {:order => "#{quoted_table}.#{quoted_column} DESC"})
         end
     end
   end

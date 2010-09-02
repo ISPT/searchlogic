@@ -84,45 +84,55 @@ module Searchlogic
           end
         end
         
+        def q_table(table_name)
+          ::ActiveRecord::Base.connection.quote_table_name(table_name)
+        end
+
+        def q_column(column_name)
+          ::ActiveRecord::Base.connection.quote_column_name(column_name)
+        end
+
         def create_primary_condition(column, condition)
           column_type = columns_hash[column.to_s].type
           match_keyword = ::ActiveRecord::Base.connection.adapter_name == "PostgreSQL" ? "ILIKE" : "LIKE"
           
+          quoted_col = q_column(column)
+          quoted_table = q_table(table_name)
           scope_options = case condition.to_s
           when /^equals/
-            scope_options(condition, column_type, lambda { |a| attribute_condition("#{table_name}.#{column}", a) })
+            scope_options(condition, column_type, lambda { |a| attribute_condition("#{quoted_table}.#{quoted_col}", a) })
           when /^does_not_equal/
-            scope_options(condition, column_type, "#{table_name}.#{column} != ?")
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} != ?")
           when /^less_than_or_equal_to/
-            scope_options(condition, column_type, "#{table_name}.#{column} <= ?")
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} <= ?")
           when /^less_than/
-            scope_options(condition, column_type, "#{table_name}.#{column} < ?")
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} < ?")
           when /^greater_than_or_equal_to/
-            scope_options(condition, column_type, "#{table_name}.#{column} >= ?")
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} >= ?")
           when /^greater_than/
-            scope_options(condition, column_type, "#{table_name}.#{column} > ?")
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} > ?")
           when /^like/
-            scope_options(condition, column_type, "#{table_name}.#{column} #{match_keyword} ?", :like)
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} #{match_keyword} ?", :like)
           when /^not_like/
-            scope_options(condition, column_type, "#{table_name}.#{column} NOT #{match_keyword} ?", :like)
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} NOT #{match_keyword} ?", :like)
           when /^begins_with/
-            scope_options(condition, column_type, "#{table_name}.#{column} #{match_keyword} ?", :begins_with)
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} #{match_keyword} ?", :begins_with)
           when /^not_begin_with/
-            scope_options(condition, column_type, "#{table_name}.#{column} NOT #{match_keyword} ?", :begins_with)
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} NOT #{match_keyword} ?", :begins_with)
           when /^ends_with/
-            scope_options(condition, column_type, "#{table_name}.#{column} #{match_keyword} ?", :ends_with)
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} #{match_keyword} ?", :ends_with)
           when /^not_end_with/
-            scope_options(condition, column_type, "#{table_name}.#{column} NOT #{match_keyword} ?", :ends_with)
+            scope_options(condition, column_type, "#{quoted_table}.#{quoted_col} NOT #{match_keyword} ?", :ends_with)
           when "null"
-            {:conditions => "#{table_name}.#{column} IS NULL"}
+            {:conditions => "#{quoted_table}.#{quoted_col} IS NULL"}
           when "not_null"
-            {:conditions => "#{table_name}.#{column} IS NOT NULL"}
+            {:conditions => "#{quoted_table}.#{quoted_col} IS NOT NULL"}
           when "empty"
-            {:conditions => "#{table_name}.#{column} = ''"}
+            {:conditions => "#{quoted_table}.#{quoted_col} = ''"}
           when "blank"
-            {:conditions => "#{table_name}.#{column} = '' OR #{table_name}.#{column} IS NULL"}
+            {:conditions => "#{quoted_table}.#{quoted_col} = '' OR #{quoted_table}.#{quoted_col} IS NULL"}
           when "not_blank"
-            {:conditions => "#{table_name}.#{column} != '' AND #{table_name}.#{column} IS NOT NULL"}
+            {:conditions => "#{quoted_table}.#{quoted_col} != '' AND #{quoted_table}.#{quoted_col} IS NOT NULL"}
           end
           
           named_scope("#{column}_#{condition}".to_sym, scope_options)
